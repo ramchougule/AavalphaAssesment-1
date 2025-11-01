@@ -1,6 +1,7 @@
 import logo from './logo.png';
 import './App.css';
 import { useState } from 'react';
+import axios from "axios";
 
 function App() {
   const [formData, setFormData] = useState({
@@ -8,6 +9,8 @@ function App() {
     foreignSalesCount: '',
     averageSaleAmount: ''
   });
+
+  const [error,setError] = useState('');
   
   const [results, setResults] = useState({
     avalphaTechnologiesCommission: 0,
@@ -24,27 +27,56 @@ function App() {
     }));
   };
 
+  const handleKeyDown = (e) => {
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     
     // TODO: Replace with actual API call to backend
-    setTimeout(() => {
-      // Mock calculation for now
-      const localCommission = parseFloat(formData.localSalesCount) * parseFloat(formData.averageSaleAmount) * 0.20;
-      const foreignCommission = parseFloat(formData.foreignSalesCount) * parseFloat(formData.averageSaleAmount) * 0.35;
-      const avalphaTechnologiesTotal = localCommission + foreignCommission;
-      
-      const competitorLocal = parseFloat(formData.localSalesCount) * parseFloat(formData.averageSaleAmount) * 0.02;
-      const competitorForeign = parseFloat(formData.foreignSalesCount) * parseFloat(formData.averageSaleAmount) * 0.0755;
-      const competitorTotal = competitorLocal + competitorForeign;
-      
+    const payload = {
+      localSalesCount: Number(formData.localSalesCount),
+      foreignSalesCount: Number(formData.foreignSalesCount),
+      averageSaleAmount: Number(formData.averageSaleAmount)
+    }
+    try {
+      const response = await axios.post("https://localhost:5000/Commision",payload );
       setResults({
-        avalphaTechnologiesCommission: avalphaTechnologiesTotal.toFixed(2),
-        competitorCommission: competitorTotal.toFixed(2)
+        avalphaTechnologiesCommission: response.data.avalphaTechnologiesCommissionAmount?.toFixed(2),
+        competitorCommission: response.data.competitorCommissionAmount?.toFixed(2)
       });
+      setError('');
       setIsLoading(false);
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+      if (err.response && err.response.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Failed to calculate commission. Please try again.");
+      }
+      setIsLoading(false);
+    }
+
+    // setTimeout(() => {
+    //   // Mock calculation for now
+    //   const localCommission = parseFloat(formData.localSalesCount) * parseFloat(formData.averageSaleAmount) * 0.20;
+    //   const foreignCommission = parseFloat(formData.foreignSalesCount) * parseFloat(formData.averageSaleAmount) * 0.35;
+    //   const avalphaTechnologiesTotal = localCommission + foreignCommission;
+      
+    //   const competitorLocal = parseFloat(formData.localSalesCount) * parseFloat(formData.averageSaleAmount) * 0.02;
+    //   const competitorForeign = parseFloat(formData.foreignSalesCount) * parseFloat(formData.averageSaleAmount) * 0.0755;
+    //   const competitorTotal = competitorLocal + competitorForeign;
+      
+    //   setResults({
+    //     avalphaTechnologiesCommission: avalphaTechnologiesTotal.toFixed(2),
+    //     competitorCommission: competitorTotal.toFixed(2)
+    //   });
+    //   setIsLoading(false);
+    // }, 1000);
   };
 
   return (
@@ -66,10 +98,12 @@ function App() {
                 <label htmlFor="localSalesCount">Local Sales Count</label>
                 <input 
                   type="number" 
+                  min="0"
                   id="localSalesCount"
                   name="localSalesCount"
                   value={formData.localSalesCount}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Enter number of local sales"
                   required
                 />
@@ -79,10 +113,12 @@ function App() {
                 <label htmlFor="foreignSalesCount">Foreign Sales Count</label>
                 <input 
                   type="number" 
+                  min="0"
                   id="foreignSalesCount"
                   name="foreignSalesCount"
                   value={formData.foreignSalesCount}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Enter number of foreign sales"
                   required
                 />
@@ -93,10 +129,12 @@ function App() {
                 <input 
                   type="number" 
                   step="0.01"
+                  min="0"
                   id="averageSaleAmount"
                   name="averageSaleAmount"
                   value={formData.averageSaleAmount}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Enter average sale amount"
                   required
                 />
@@ -109,6 +147,7 @@ function App() {
               >
                 {isLoading ? 'Calculating...' : 'Calculate Commission'}
               </button>
+              {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
             </form>
           </div>
 
